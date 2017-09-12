@@ -10,7 +10,6 @@ using StatsBase
 using PyPlot
 
 export BSVM
-export TrainBSVM
 
 #Corresponds to the BSVM model
 type BSVM
@@ -48,6 +47,7 @@ type BSVM
     StoredDerivativesELBO::Array{Float64,2}
   #Functions
   Kernel_function::Function #kernel function associated with the model
+  Train::Function #Model train for a certain number of iterations
   Predict::Function
   PredictProba::Function
   ELBO::Function
@@ -106,6 +106,9 @@ type BSVM
           end
           return dist
       end
+      this.Train = function()
+          TrainBSVM(this);
+        end
 
       if Sparse
         this.Predict = function(X_test)
@@ -156,7 +159,7 @@ type BSVM
         end
     end
     this.Plotting = function(s::String)
-        Plotting(s,this)
+        ParametersPlotting(s,this)
       end
     this.Update = function(iter)
         Update(this,this.X,this.y,iter)
@@ -565,7 +568,7 @@ function NoisySparseELBO(model,indices)
 end
 
 
-function ParametersPlotting(option::String,model::BSVM)
+function ParametersPlotting(;option::String="All",model::BSVM)
   if !model.Storing
     warn("Data was not saved during training, please rerun training with option Storing=true")
     return
