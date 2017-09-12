@@ -81,11 +81,9 @@ type BSVM
 
 
   #Constructor
-  function BSVM(X,y;Stochastic::Bool=false,
-                                  Sparse::Bool=false,NonLinear::Bool=true,AdaptativeLearningRate::Bool=true,Autotuning::Bool=false,
-                                  nEpochs::Int64 = 2000,
-                                  batchSize::Int64=-1,κ_s::Float64=1.0,τ_s::Int64=100,
-                                  kernels=0,γ::Float64=1e-3,m::Int64=100,κ_Θ::Float64=1.0,τ_Θ::Int64=100,autotuningfrequency::Int64=10,
+  function BSVM(X,y;Stochastic::Bool=false,Sparse::Bool=true,NonLinear::Bool=true,AdaptativeLearningRate::Bool=true,Autotuning::Bool=false,
+                                  nEpochs::Int64 = 2000,batchSize::Int64=-1,κ_s::Float64=1.0,τ_s::Int64=100,
+                                  kernels=0,γ::Float64=1e-3,m::Int64=0,κ_Θ::Float64=1.0,τ_Θ::Int64=100,autotuningfrequency::Int64=10,
                                   Intercept::Bool=false,ϵ::Float64=1e-5,β_init=[0.0],smoothingWindow::Int64=10,
                                   Storing::Bool=false,StoringFrequency::Int64=1,VerboseLevel::Int64=0)
     iter = 1
@@ -158,8 +156,8 @@ type BSVM
           DerivativesLinearELBO(Diagonal(this.y)*this.X,this.μ,this.ζ,this.α,inv(this.invΣ))
         end
     end
-    this.Plotting = function(s::String)
-        ParametersPlotting(s,this)
+    this.Plotting = function(;s::String="All")
+        ParametersPlotting(this,option=s)
       end
     this.Update = function(iter)
         Update(this,this.X,this.y,iter)
@@ -181,11 +179,20 @@ function ModelVerification(model::BSVM,XSize,ySize)
   end
   if model.Sparse && !model.NonLinear
     warn("Model cannot be sparse and linear at the same time, assuming linear model")
+    model.Sparse = false;
+  end
+  if model.Sparse && model.m == 0
+
+
   end
   if model.NonLinear && model.Sparse
+      minpoints = 50
     if model.m > XSize[1]
-      warn("There are more inducing points than actual points, setting it to 10%")
-      model.m = XSize[1]÷10
+      warn("There are more inducing points than actual points, setting it to 10% of the datasize (minimum of $minpoints points)")
+      model.m = min(minpoints,XSize[1]÷10)
+    elseif model.m == 0
+      warn("Number of inducing points was not manually set, setting it to 10% of the datasize (minimum of $minpoints points)")
+      model.m = min(minpoints,XSize[1]÷10)
     end
   end
   if XSize[1] != ySize[1]
@@ -272,7 +279,7 @@ function TrainBSVM(model::BSVM)
       # Storing trace(ζ),ELBO,max(|α|),ρ_s,ρ_Θ/ρ_γ,||Θ||/γ
       model.StoredValues = zeros(model.nEpochs,6)
       model.StoredDerivativesELBO = zeros(model.nEpochs,4)
-      model.StoredValues[1,:] = [trace(model.ζ),model.ELBO(),maximum(abs.(model.α)),model.ρ_s,model.γ,model.Autotuning ? model.ρ_Θ : 0.0]
+      model.StoredValues[1,:] = [model.ELBO(),trace(model.ζ),mean(model.μ),mean(model.α),model.γ,model.Autotuning ? model.ρ_Θ : 0.0]
       model.StoredDerivativesELBO[1,:] = model.DerivativesELBO()
     end
     model.initialized = true
@@ -319,9 +326,9 @@ function TrainBSVM(model::BSVM)
           model.J = CreateKernelMatrix(model.X,deriv_rbf,model.Θ)
         end
       end
-      model.StoredValues[iter÷model.StoringFrequency,:] = [trace(model.ζ),model.ELBO(),maximum(abs(model.α)),model.ρ_s,model.γ,model.Autotuning ? model.ρ_Θ : 0.0,]
+      model.StoredValues[iter÷model.StoringFrequency,:] = [model.ELBO(),trace(model.ζ),mean(model.μ),mean(model.α),model.γ,model.Autotuning ? model.ρ_Θ : 0.0,]
       model.StoredDerivativesELBO[iter÷model.StoringFrequency,:] = model.DerivativesELBO()
-      #println(model.StoreddELBO[iter÷model.StoringFrequency,:])
+      #println(model.StoredDerivativesELBO[iter÷model.StoringFrequency,:])
     end
     if model.VerboseLevel > 2 || (model.VerboseLevel > 1  && iter%100==0)
       println("Iteration $iter / $(model.nEpochs) (max)")
@@ -568,7 +575,7 @@ function NoisySparseELBO(model,indices)
 end
 
 
-function ParametersPlotting(;option::String="All",model::BSVM)
+function ParametersPlotting(model::BSVM;option::String="All")
   if !model.Storing
     warn("Data was not saved during training, please rerun training with option Storing=true")
     return
@@ -583,16 +590,16 @@ function ParametersPlotting(;option::String="All",model::BSVM)
     nFeatures = model.Autotuning ? 6 : 4;
     subplot(nFeatures÷2,2,1)
     plot(sparseiterations,model.StoredValues[:,1])
-    ylabel(L"Trace($\zeta$)")
-    subplot(nFeatures÷2,2,2)
-    plot(iterations,sqrt.(sumabs2(model.evol_β,2)))
-    ylabel(L"Normalized $\beta$")
-    subplot(nFeatures÷2,2,3)
-    plot(sparseiterations,model.StoredValues[:,2])
     ylabel("ELBO")
+    subplot(nFeatures÷2,2,2)
+    plot(sparseiterations,model.StoredValues[:,2])
+    ylabel(L"Trace($\zeta$)")
+    subplot(nFeatures÷2,2,3)
+    plot(sparseiterations,model.StoredValues[:,3])
+    ylabel(L"Mean($\mu$)")
     subplot(nFeatures÷2,2,4)
     semilogy(sparseiterations,model.StoredValues[:,4])
-    ylabel(L"\rho_s")
+    ylabel(L"Mean(\alpha_i)")
     if model.Autotuning
       subplot(nFeatures÷2,2,5)
       semilogy(sparseiterations,model.StoredValues[:,5])
@@ -602,25 +609,28 @@ function ParametersPlotting(;option::String="All",model::BSVM)
       ylabel(L"\rho_\theta")
     end
   elseif option == "dELBO"
-    (nIterations,nFeatures) = size(model.StoreddELBO)
+    (nIterations,nFeatures) = size(model.StoredDerivativesELBO)
+    if model.Sparse
+        warn("ELBO derivatives not available yet for the Sparse Algorithm")
+    end
     DerivativesLabels = ["d\zeta" "d\mu" "d\alpha" "d\theta"]
     for i in 1:4
       if i <= 3  || (i==4 && model.Autotuning)
         subplot(2,2,i)
-        plot(sparseiterations,model.StoreddELBO[:,i])
+        plot(sparseiterations,model.StoredDerivativesELBO[:,i])
         ylabel(DerivativesLabels[i])
       end
     end
-  elseif option == "Beta"
+elseif option == "Mu"
     plot(iterations,sqrt.(sumabs2(model.evol_β)))
-    ylabel(L"Normalized $\beta$")
+    ylabel(L"Normalized $\mu$")
     xlabel("Iterations")
   elseif option == "ELBO"
     plot(iterations,model.StoredValues[:,2])
     ylabel("ELBO")
     xlabel("Iterations")
   else
-    warn("Option not available, chose among those : All, dELBO, Beta, Autotuning, ELBO")
+    warn("Option not available, chose among those : All, dELBO, Mu, Autotuning, ELBO")
   end
   return;
 end
