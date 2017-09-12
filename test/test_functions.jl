@@ -3,8 +3,6 @@
 Set of datatype and functions for efficient testing.
 # ---------------- =#
 
-if !isdefined(:BayesianSVM); include("../src/BSVM.jl"); end;
-
 module TestFunctions
 
 using BayesianSVM
