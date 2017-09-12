@@ -2,8 +2,8 @@
 # Run on a file and compute accuracy on a nFold cross validation
 # Compute also the brier score and the logscore
 
-if !isdefined(:DataAccess); include("../tests/DataExamples.jl"); end;
-if !isdefined(:TestFunctions); include("../tests/test_functions.jl");end;
+if !isdefined(:DataAccess); include("../test/DataExamples.jl"); end;
+if !isdefined(:TestFunctions); include("../test/test_functions.jl");end;
 using TestFunctions
 using DataExamples
 
@@ -21,7 +21,7 @@ doAccuracy = true #Compute Accuracy
 doBrierScore = true #Compute BrierScore
 doLogScore = false #Compute LogScore
 doWrite = false #Write results in appropriate folder
-ShowIntResults = true #Show intermediate time, and results for each fold
+ShowIntResults = false #Show intermediate time, and results for each fold
 
 
 ### Training Parameters and Hyperparameters###
