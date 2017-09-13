@@ -12,7 +12,7 @@ Pkg.clone("git://github.com/theogf/BayesianSVM.jl.git")
 ```
 
 ## Running the Algorithm
-A more complete documentation will be created very soon. For now here are the basic steps for using the algorithm :
+Here are the basic steps for using the algorithm :
 ```
 using BayesianSVM
 Model = BSVM(X_training,y_training)
@@ -21,3 +21,5 @@ y_predic = sign(Model.Predict(X_test))
 y_uncertaintypredic = Model.PredictProb(X_test)
 ```
 Where X_training should be a matrix of size NSamples x NFeatures, and y_training should be a vector of 1 and -1
+
+You can find a more complete description in the [Wiki](https://github.com/theogf/BayesianSVM.jl/wiki/Bayesian-Support-Vector-Machine-Documentation#welcome-to-the-bayesiansvmjl-wiki)
