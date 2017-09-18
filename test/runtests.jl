@@ -7,6 +7,8 @@ if !isdefined(:TestFunctions); include("../test/test_functions.jl");end;
 using TestFunctions
 using DataExamples
 
+
+@test function()
 ####### Data and Training Parameters #######
 ### Setting the Dataset ###
 #= Datasets available with get_Waveform and get_BreastCancer=#
@@ -78,3 +80,6 @@ if doWrite
   if !isdir(top_fold); mkdir(top_fold); end;
   WriteResults(Model,top_fold) #Write the results in an adapted format into a folder
 end
+
+return true
+end #end of testing

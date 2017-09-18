@@ -584,8 +584,9 @@ function ParametersPlotting(model::BSVM;option::String="All")
     return
   end
   figure("Evolution of model properties over time");
-  iterations = collect(1:size(model.evol_β,1))
-  sparseiterations = collect(linspace(1,size(model.evol_β,1),size(model.StoredValues,1)))
+  iterations =  floor(Int64,1:size(model.evol_β,1))-1
+  nsiterations = size(model.StoredValues,1);
+  sparseiterations = floor(Int64,linspace(0,(nsiterations-1)*model.StoringFrequency,nsiterations))
   if option == "All"
     nFeatures = model.Autotuning ? 6 : 4;
     subplot(nFeatures÷2,2,1)
@@ -598,8 +599,8 @@ function ParametersPlotting(model::BSVM;option::String="All")
     plot(sparseiterations,model.StoredValues[:,3])
     ylabel(L"Mean($\mu$)")
     subplot(nFeatures÷2,2,4)
-    semilogy(sparseiterations,model.StoredValues[:,4])
-    ylabel(L"Mean(\alpha_i)")
+    plot(sparseiterations,model.StoredValues[:,4])
+    ylabel(L"Mean($\alpha_i$)")
     if model.Autotuning
       subplot(nFeatures÷2,2,5)
       semilogy(sparseiterations,model.StoredValues[:,5])

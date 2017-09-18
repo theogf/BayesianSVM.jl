@@ -3,7 +3,10 @@ This repository contains the Julia package for the Bayesian SVM algorithm descri
 
 ## Requirements
 The BayesianSVM only works for version of Julia > 0.5.
-Other necessary packages will automatically be added in the installation
+Other necessary packages will automatically be added in the installation.
+It is also possible to run the package from Python, to do so please check [Pyjulia](https://github.com/JuliaPy/pyjulia).
+If you prefer to use R you have the possibility to use [RJulia](https://github.com/armgong/RJulia)
+All these is a bit technical due to the fact that Julia is still a young package
 
 ## Installation
 To install the last version of the package in Julia run
