@@ -91,7 +91,11 @@ type BSVM
       warn("No kernel indicated, a rbf kernel function with lengthscale 1 is used")
       kernels = [Kernel("rbf",1.0,params=1.0)]
     end
+    #Verification of consistency of the model
     this = new(X,y,Stochastic,batchSize,κ_s,τ_s,NonLinear,Sparse,kernels,γ,m,Autotuning,κ_Θ,τ_Θ,autotuningfrequency,AdaptativeLearningRate,Intercept,ϵ,nEpochs,β_init,smoothingWindow,VerboseLevel,Storing,StoringFrequency)
+    if !ModelVerification(this,size(this.X),size(this.y))
+      return
+    end
     this.initialized = false
     if NonLinear
       this.top = 0
@@ -173,31 +177,39 @@ function ModelVerification(model::BSVM,XSize,ySize)
     warn("Not possible to have intercept for the non linear case, removing automatically this option")
     model.Intercept = false
   end
+  if XSize[1] != ySize[1]
+    warn("There is a dimension problem with the data size(y) != size(X)")
+    return false
+  end
+  if model.NonLinear && model.Sparse
+      minpoints = 50
+    if model.m > XSize[1]
+        if XSize[1] < 3.0*minpoints
+            warn("Wrong inducing point setting, using the full batch method")
+            model.Sparse = false
+            model.Stochastic = false
+        else
+            warn("There are more inducing points than actual points, setting it to 10% of the datasize (minimum of $minpoints points)")
+            model.m = min(minpoints,XSize[1]÷10)
+        end
+    elseif model.m == 0
+        if XSize[1] < 3.0*minpoints
+            warn("Number of inducing points was not manually set, using the full batch method")
+            model.Sparse = false
+            model.Stochastic = false
+        else
+            warn("Number of inducing points was not manually set, setting it to 10% of the datasize (minimum of $minpoints points)")
+            model.m = min(minpoints,XSize[1]÷10)
+        end
+    end
+  end
   if !model.Stochastic && model.smoothingWindow > 1
-      warn("Smoothing Windows larger than one is unnecessary for a non-stochastic optimization, setting it to one.")
+      # warn("Smoothing Windows larger than one is unnecessary for a non-stochastic optimization, setting it to one.")
       model.smoothingWindow = 1;
   end
   if model.Sparse && !model.NonLinear
     warn("Model cannot be sparse and linear at the same time, assuming linear model")
     model.Sparse = false;
-  end
-  if model.Sparse && model.m == 0
-
-
-  end
-  if model.NonLinear && model.Sparse
-      minpoints = 50
-    if model.m > XSize[1]
-      warn("There are more inducing points than actual points, setting it to 10% of the datasize (minimum of $minpoints points)")
-      model.m = min(minpoints,XSize[1]÷10)
-    elseif model.m == 0
-      warn("Number of inducing points was not manually set, setting it to 10% of the datasize (minimum of $minpoints points)")
-      model.m = min(minpoints,XSize[1]÷10)
-    end
-  end
-  if XSize[1] != ySize[1]
-    warn("There is a dimension problem with the data size(y) != size(X)")
-    return false
   end
   if model.γ <= 0
     warn("Gamma should be strictly positive, setting it to default value 1.0e-3")
@@ -207,18 +219,10 @@ function ModelVerification(model::BSVM,XSize,ySize)
     warn("No batch size has been given, stochastic option has been removed")
     model.Stochastic = false
   end
-  if model.m > XSize[1] && model.Sparse
-    warn("Number of inducing points bigger then number of data points, setting it back to non sparse configuration")
-    model.Sparse = false
-  end
   return true
 end
 
 function TrainBSVM(model::BSVM)
-  #Verification of consistency of the model
-  if !ModelVerification(model,size(model.X),size(model.y))
-    return
-  end
   model.nSamples = length(model.y)
   model.nFeatures = model.NonLinear ? (model.Sparse ? model.m : length(model.y)) : size(model.X,2)
 

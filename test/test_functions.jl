@@ -73,7 +73,7 @@ end
 function TrainModel(tm::TestingModel,iterations)
   time_training = 0;
   tm.Model.nEpochs = iterations
-  time_training = @elapsed TrainBSVM(tm.Model)
+  time_training = @elapsed tm.Model.Train()
   return time_training;
 end
 
