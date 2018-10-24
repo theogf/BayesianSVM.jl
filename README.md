@@ -1,3 +1,5 @@
+## A MORE GENERAL GP PACKAGE EXISTS NOW AT [OMGP.JL](https://github.com/theogf/OMGP.jl) (INCLUDING BSVM)
+
 # BayesianSVM.jl
 This repository contains the Julia package for the Bayesian SVM algorithm described in the paper [_"Bayesian Nonlinear Support Vector Machines for Big Data"_](https://arxiv.org/abs/1707.05532) by Florian Wenzel, Théo Galy-Fajou, Matthäus Deutsch and Marius Kloft
 
